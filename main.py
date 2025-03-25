@@ -6,6 +6,31 @@ from aiogram.types import ContentType
 from pyrogram import Client
 from aiogram.filters import Command
 from aiogram.types import Message
+from pyrogram.raw.functions.account import ReportPeer
+from pyrogram.raw.types import (
+    InputReportReasonSpam,
+    InputReportReasonViolence,
+    InputReportReasonChildAbuse,
+    InputReportReasonPornography,
+    InputReportReasonCopyright,
+    InputReportReasonFake,
+    InputReportReasonIllegalDrugs,
+    InputReportReasonPersonalDetails,
+    InputReportReasonOther
+)
+
+# 🔥 Available Report Reasons
+REPORT_REASONS = {
+    "spam": InputReportReasonSpam(),
+    "violence": InputReportReasonViolence(),
+    "child_abuse": InputReportReasonChildAbuse(),
+    "pornography": InputReportReasonPornography(),
+    "copyright": InputReportReasonCopyright(),
+    "fake": InputReportReasonFake(),
+    "drugs": InputReportReasonIllegalDrugs(),
+    "personal_data": InputReportReasonPersonalDetails(),
+    "other": InputReportReasonOther()
+}
 
 # ✅ Replace These with Your API Details
 BOT_TOKEN = "7656369802:AAGdlo88cewouuiviq-eHoRHdxj_Ktji3To"
@@ -74,34 +99,54 @@ async def delete_session(message: Message):
 # 🟢 Report a User
 @dp.message(Command("report"))
 async def report_user(message: Message):
-    args = message.text.split(" ", 1)
-    if len(args) < 2:
-        await message.reply("❌ Usage: /report @username or chat_id")
+    args = message.text.split(" ")
+    
+    if len(args) < 3:
+        await message.reply(
+            "❌ **Usage:** `/report @username reason count`\n\n"
+            "📝 **Available Reasons:**\n"
+            "`spam, violence, child_abuse, pornography, copyright, fake, drugs, personal_data, other`"
+        )
         return
 
     target_user = args[1].strip()
+    reason_key = args[2].strip().lower()
+    report_count = int(args[3]) if len(args) > 3 and args[3].isdigit() else 1  # Default: 1 report
 
-    # 📂 Load Session Files
+    if reason_key not in REPORT_REASONS:
+        await message.reply("❌ Invalid reason! Use one of these:\n`" + "`, `".join(REPORT_REASONS.keys()) + "`")
+        return
+
+    reason = REPORT_REASONS[reason_key]
     session_files = os.listdir("sessions")
+    
     if not session_files:
         await message.reply("❌ No active sessions found. Please add at least one session using /addsession.")
         return
 
-    success_count = 0
+    total_reports = 0
     failed_count = 0
 
     for session_file in session_files:
         session_path = os.path.join("sessions", session_file)
         try:
             async with Client(session_path, api_id=API_ID, api_hash=API_HASH) as client:
-                await client.report_peer(target_user, types.enums.ReportReason.SPAM)
-                success_count += 1
+                user = await client.resolve_peer(target_user)
+
+                for _ in range(report_count):
+                    await client.invoke(ReportPeer(peer=user, reason=reason, message="Automated Report"))
+                    total_reports += 1
+
         except Exception as e:
             failed_count += 1
-            print(f"⚠️ Failed to report from {session_file}: {str(e)}")
+            print(f"⚠️ Failed from {session_file}: {str(e)}")
 
-    await message.reply(f"✅ Reports sent successfully from {success_count} accounts! ❌ {failed_count} failed.")
-
+    await message.reply(
+        f"✅ **Total Reports Sent:** {total_reports} 🚀\n"
+        f"❌ **Failed Attempts:** {failed_count}\n"
+        f"📢 **Reason Used:** `{reason_key}`"
+    )
+    
 # 🟢 Start Bot
 async def main():
     print("🚀 Telegram Mass Reporting Bot Started!")
