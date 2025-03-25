@@ -17,7 +17,7 @@ BOT_TOKEN = "7656369802:AAGdlo88cewouuiviq-eHoRHdxj_Ktji3To"
 API_ID = 28795512
 API_HASH = "c17e4eb6d994c9892b8a8b6bfea4042a"
 
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(token=BOT_TOKEN, parse_mode="MarkdownV2")  # MarkdownV2 सेट किया
 dp = Dispatcher()
 
 # 🟢 Available Report Reasons
@@ -39,27 +39,27 @@ sessions = []
 # 🟢 Start Command
 @dp.message(Command("start"))
 async def start_command(message: Message):
-    await message.reply("🚀 Telegram Mass Reporting Bot Running!\nUse /addsession {session_string} to add accounts.")
+    await message.reply("🚀 *Telegram Mass Reporting Bot Running!*\nUse `/addsession {session_string}` to add accounts.")
 
 # 🟢 Add Session
 @dp.message(Command("addsession"))
 async def add_session(message: Message):
     args = message.text.split(" ", 1)
     if len(args) < 2:
-        await message.reply("❌ Usage: `/addsession {session_string}`")
+        await message.reply("❌ *Usage:* `/addsession {session_string}`")
         return
     
     session_string = args[1].strip()
     sessions.append(session_string)
-    await message.reply("✅ Session Added Successfully!")
+    await message.reply("✅ *Session Added Successfully!*")
 
 # 🟢 List Sessions
 @dp.message(Command("listsessions"))
 async def list_sessions(message: Message):
     if not sessions:
-        await message.reply("❌ No sessions added yet.")
+        await message.reply("❌ *No sessions added yet.*")
     else:
-        await message.reply(f"✅ Active Sessions: {len(sessions)}")
+        await message.reply(f"✅ *Active Sessions:* `{len(sessions)}`")
 
 # 🟢 Report a User
 @dp.message(Command("report"))
@@ -68,8 +68,8 @@ async def report_user(message: Message):
     
     if len(args) < 4:
         await message.reply(
-            "❌ **Usage:** `/report @username reason count`\n\n"
-            "📝 **Available Reasons:**\n"
+            "❌ *Usage:* `/report @username reason count`\n\n"
+            "📝 *Available Reasons:*\n"
             "`spam, violence, child_abuse, pornography, copyright, fake, drugs, personal_data, other`"
         )
         return
@@ -79,7 +79,7 @@ async def report_user(message: Message):
     report_count = int(args[3]) if args[3].isdigit() else 1  # Default: 1 report
 
     if reason_key not in REPORT_REASONS:
-        await message.reply("❌ Invalid reason! Use one of these:\n`" + "`, `".join(REPORT_REASONS.keys()) + "`")
+        await message.reply("❌ *Invalid reason!* Use one of these:\n`" + "`, `".join(REPORT_REASONS.keys()) + "`")
         return
 
     reason = REPORT_REASONS[reason_key]
@@ -99,10 +99,13 @@ async def report_user(message: Message):
             failed_count += 1
             print(f"⚠️ Failed: {str(e)}")
 
+    # 🔹 MarkdownV2 के लिए `_` को `\_` से रिप्लेस किया, ताकि Telegram सही से दिखाए
+    reason_key = reason_key.replace("_", "\\_")
+
     await message.reply(
-        f"✅ **Total Reports Sent:** {total_reports} 🚀\n"
-        f"❌ **Failed Attempts:** {failed_count}\n"
-        f"📢 **Reason Used:** `{reason_key}`"
+        f"✅ *Total Reports Sent:* `{total_reports}` 🚀\n"
+        f"❌ *Failed Attempts:* `{failed_count}`\n"
+        f"📢 *Reason Used:* `{reason_key}`"
     )
 
 # 🟢 Start Bot
